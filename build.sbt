@@ -6,9 +6,10 @@ name := "spark-notebook-core"
 
 version := "0.1.0-SNAPSHOT"
 
+bintrayRepository := "spark-notebook"
 bintrayOrganization := Some("data-fellas")
 
-bintrayVcsUrl := Some("git@github.com:data-fellas/spark-notebook-core.git")
+bintrayVcsUrl := Some("https://github.com/spark-notebook/spark-notebook-core.git")
 
 bintrayOmitLicense := true
 
