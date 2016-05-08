@@ -15,7 +15,7 @@ bintrayOmitLicense := true
 
 publishArtifact in Test := false
 
-publishMavenStyle := false
+publishMavenStyle := true
 
 libraryDependencies +=  "com.typesafe.play" %% "play-json" % "2.3.10" excludeAll(
                           ExclusionRule("com.typesafe.akka"),
