@@ -1,0 +1,25 @@
+scalaVersion := "2.10.5"
+
+organization := "guru.data-fellas"
+
+name := "spark-notebook-core"
+
+version := "0.1.0-SNAPSHOT"
+
+bintrayOrganization := Some("data-fellas")
+
+bintrayVcsUrl := Some("git@github.com:data-fellas/spark-notebook-core.git")
+
+bintrayOmitLicense := true
+
+publishArtifact in Test := false
+
+publishMavenStyle := false
+
+libraryDependencies +=  "com.typesafe.play" %% "play-json" % "2.3.10" excludeAll(
+                          ExclusionRule("com.typesafe.akka"),
+                          ExclusionRule("com.google.guava")
+                        )
+libraryDependencies += "org.apache.commons" % "commons-io" % "1.3.2"
+
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.6" % "test"
