@@ -12,7 +12,7 @@ import scala.util.{Try, Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait NotebookProvider {
-  def withConfiguration(): Config = ConfigFactory.empty()
+  def initialize(config: Config = ConfigFactory.empty()): Unit = ()
   def verifyProvider(): Future[Unit] = Future {}
   def delete(path: Path): Future[Option[Notebook]]
   def get(path: Path): Future[Option[Notebook]]
