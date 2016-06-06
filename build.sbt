@@ -7,6 +7,7 @@ name := "spark-notebook-core"
 version := "0.1.1-SNAPSHOT"
 
 bintrayRepository := "spark-notebook"
+
 bintrayOrganization := Some("data-fellas")
 
 bintrayVcsUrl := Some("https://github.com/spark-notebook/spark-notebook-core.git")
@@ -21,6 +22,7 @@ libraryDependencies +=  "com.typesafe.play" %% "play-json" % "2.3.10" excludeAll
                           ExclusionRule("com.typesafe.akka"),
                           ExclusionRule("com.google.guava")
                         )
+
 libraryDependencies += "org.apache.commons" % "commons-io" % "1.3.2"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.6" % "test"
