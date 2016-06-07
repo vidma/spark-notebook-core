@@ -1,7 +1,6 @@
 package notebook
 
 import java.util.Date
-
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
@@ -68,14 +67,16 @@ object NBSerializer {
         throw new IllegalStateException("Cannot read this output_type: " + x)
     }
   }
-  implicit val outputWrites: Writes[Output] = Writes { (o: Output) =>
-    o match {
-      case o: ScalaExecuteResult => scalaExecuteResultFormat.writes(o)
-      case o: ScalaOutput => scalaOutputFormat.writes(o)
-      case o: ScalaError => scalaErrorFormat.writes(o)
-      case o: ScalaStream => scalaStreamFormat.writes(o)
-    }
+
+  implicit val outputWrites: Writes[Output] = Writes {
+    case o: ScalaExecuteResult => scalaExecuteResultFormat.writes(o)
+    case o: ScalaOutput => scalaOutputFormat.writes(o)
+    case o: ScalaError => scalaErrorFormat.writes(o)
+    case o: ScalaStream => scalaStreamFormat.writes(o)
+    case x =>
+      throw new IllegalStateException("Cannot read this output_type: " + x)
   }
+
   implicit val outputFormat: Format[Output] = Format(outputReads, outputWrites)
 
   case class CellMetadata(

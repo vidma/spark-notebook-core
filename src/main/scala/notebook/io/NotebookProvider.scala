@@ -46,11 +46,11 @@ trait NotebookProvider {
 }
 
 class FileSystemNotebooksProvider extends NotebookProvider {
-  var config:Config = null //aouch
+  private var config: Config = _ //ouch
 
-  override val root = Paths.get(config.getString("notebooks.dir"))
+  override lazy val root = Paths.get(config.getString("notebooks.dir"))
 
-  override def initialize(config: Config = ConfigFactory.empty()): Unit ={
+  override def initialize(config: Config): Unit = {
     this.config = config
   }
 

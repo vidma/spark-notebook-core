@@ -4,7 +4,7 @@ organization := "guru.data-fellas"
 
 name := "spark-notebook-core"
 
-version := "0.1.1-SNAPSHOT"
+version := "0.1.2-SNAPSHOT"
 
 bintrayRepository := "spark-notebook"
 
