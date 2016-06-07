@@ -25,7 +25,11 @@ trait NotebookProvider {
     def dropRoot(f: java.io.File) = f.getAbsolutePath.drop(lengthToRoot).dropWhile(_ == '/')
 
     Future {
-      path.toFile.listFiles.toList.map { f =>
+      val ps:List[java.io.File] = Option(root.resolve(path).toFile.listFiles)
+                                          .filter(_.length != 0) //toList fails if listFils is empty
+                                          .map(_.toList)
+                                          .getOrElse(Nil)
+      ps.map { f =>
         val n = f.getName
         if (f.isFile && n.endsWith(".snb")) {
           NotebookResource(
