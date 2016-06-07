@@ -1,12 +1,14 @@
 package notebook.io
 
-import java.nio.file.{Path, Files}
+import java.nio.file.{Files, Path}
 
+import com.typesafe.config.ConfigFactory
 import notebook.NBSerializer.{Metadata, Notebook}
 import org.apache.commons.io.FileUtils
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import play.api.libs.json.{JsNumber, JsObject}
+import scala.collection.JavaConverters._
 
 class FileSystemNotebookProviderTests extends WordSpec with Matchers with BeforeAndAfterAll with ScalaFutures {
 
@@ -17,7 +19,7 @@ class FileSystemNotebookProviderTests extends WordSpec with Matchers with Before
 
   val testName = "test-notebook-name"
   val sparkNotebook = Map("build" -> "unit-tests")
-  val cusomLocalRepo = Some("local-repo")
+  val customLocalRepo = Some("local-repo")
   val customRepos = Some(List("custom-repo"))
   val customDeps = Some(List(""""org.custom" % "dependency" % "1.0.0""""))
   val customImports = Some(List("""import org.cusom.dependency.SomeClass"""))
@@ -29,7 +31,7 @@ class FileSystemNotebookProviderTests extends WordSpec with Matchers with Before
       Some(new Metadata(
         name = testName,
         sparkNotebook = Some(sparkNotebook),
-        customLocalRepo = cusomLocalRepo,
+        customLocalRepo = customLocalRepo,
         customRepos = customRepos,
         customDeps = customDeps,
         customImports = customImports,
@@ -41,7 +43,10 @@ class FileSystemNotebookProviderTests extends WordSpec with Matchers with Before
       None
     )
     temp = Files.createTempDirectory("file-system-notebook-provider")
+    val notebookDir = temp.toAbsolutePath.toFile.getAbsolutePath + "/notebook"
+    val dirConfig = ConfigFactory.parseMap(Map("notebook.dir" -> notebookDir).asJava)
     provider = new FileSystemNotebooksProvider()
+    provider.initialize(dirConfig )
     target = temp.resolve(s"$testName.snb")
   }
 

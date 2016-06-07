@@ -1,25 +1,58 @@
 package notebook.io
 
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, Paths}
 
 import com.typesafe.config.{ConfigFactory, Config}
-import notebook.NBSerializer
-import notebook.NBSerializer.Notebook
 
 import scala.concurrent.{Promise, Future}
 import scala.util.{Try, Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
 
+import notebook.NBSerializer
+import notebook.NBSerializer._
+
 trait NotebookProvider {
   def initialize(config: Config = ConfigFactory.empty()): Unit = ()
   def verifyProvider(): Future[Unit] = Future {}
+  def root:Path
   def delete(path: Path): Future[Option[Notebook]]
   def get(path: Path): Future[Option[Notebook]]
   def save(path: Path, notebook: Notebook): Future[Option[Notebook]]
+  def list(path: Path): Future[List[Resource]] = {
+
+    val lengthToRoot = root.toFile.getAbsolutePath.length
+    def dropRoot(f: java.io.File) = f.getAbsolutePath.drop(lengthToRoot).dropWhile(_ == '/')
+
+    Future {
+      path.toFile.listFiles.toList.map { f =>
+        val n = f.getName
+        if (f.isFile && n.endsWith(".snb")) {
+          NotebookResource(
+            n.dropRight(".snb".length), dropRoot(f)
+          )
+        } else if (f.isFile) {
+          GenericFile(
+            n, dropRoot(f), "file"
+          )
+        } else {
+          Repository(
+            n, dropRoot(f)
+          )
+        }
+      }
+    }
+  }
 }
 
 class FileSystemNotebooksProvider extends NotebookProvider {
+  private var config: Config = _ //ouch
+
+  override lazy val root = Paths.get(config.getString("notebooks.dir"))
+
+  override def initialize(config: Config): Unit = {
+    this.config = config
+  }
 
   override def delete(path: Path): Future[Option[Notebook]] = {
     val p = Promise[Option[Notebook]]()
