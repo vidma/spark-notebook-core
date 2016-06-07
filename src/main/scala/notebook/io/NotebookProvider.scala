@@ -24,8 +24,6 @@ trait NotebookProvider {
     val lengthToRoot = root.toFile.getAbsolutePath.length
     def dropRoot(f: java.io.File) = f.getAbsolutePath.drop(lengthToRoot).dropWhile(_ == '/')
 
-    println(s"List notebooks in $path")
-
     Future {
       val ps:List[java.io.File] = Option(root.resolve(path).toFile.listFiles)
                                           .filter(_.length != 0) //toList fails if listFils is empty
