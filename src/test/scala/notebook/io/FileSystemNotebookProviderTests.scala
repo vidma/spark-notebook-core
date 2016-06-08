@@ -8,9 +8,12 @@ import org.apache.commons.io.FileUtils
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import play.api.libs.json.{JsNumber, JsObject}
+
 import scala.collection.JavaConverters._
 
 class FileSystemNotebookProviderTests extends WordSpec with Matchers with BeforeAndAfterAll with ScalaFutures {
+
+  import scala.concurrent.ExecutionContext.Implicits.global
 
   var notebook: Notebook = _
   var temp: Path = _
@@ -45,8 +48,9 @@ class FileSystemNotebookProviderTests extends WordSpec with Matchers with Before
     temp = Files.createTempDirectory("file-system-notebook-provider")
     val notebookDir = temp.toAbsolutePath.toFile.getAbsolutePath + "/notebook"
     val dirConfig = ConfigFactory.parseMap(Map("notebook.dir" -> notebookDir).asJava)
-    provider = new FileSystemNotebooksProvider()
-    provider.initialize(dirConfig )
+    val configurator = new FileSystemNotebookProviderConfigurator()
+    provider = configurator(dirConfig)
+
     target = temp.resolve(s"$testName.snb")
   }
 

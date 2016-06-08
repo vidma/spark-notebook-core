@@ -9,12 +9,12 @@ import org.apache.commons.io.FileUtils
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 
-
-import scala.collection.JavaConverters._
 import scala.concurrent.Future
 
 
 class NotebookProviderTests extends WordSpec with Matchers with BeforeAndAfterAll with ScalaFutures {
+
+  import scala.concurrent.ExecutionContext.Implicits.global
 
   val rootPath = Files.createTempDirectory("notebook-provider-test")
   val notebookPath = rootPath.resolve("notebook")
@@ -24,12 +24,10 @@ class NotebookProviderTests extends WordSpec with Matchers with BeforeAndAfterAl
 
   override def beforeAll() : Unit = {
     Seq(notebookPath, emptyPath).foreach(path => Files.createDirectory(path))
-
     Seq(notebookFile, resourceFile).foreach{file =>
       val filePath = notebookPath.resolve(file)
       Files.write(filePath, "text".getBytes(StandardCharsets.UTF_8))
     }
-
   }
 
   override def afterAll() : Unit = {
@@ -41,19 +39,9 @@ class NotebookProviderTests extends WordSpec with Matchers with BeforeAndAfterAl
     val defaultInstance = new NotebookProvider() {
       override def root: Path = rootPath
       val successfulNothing : Future[Option[Notebook]] = Future.successful(None)
-      override def get(path: Path): Future[Option[Notebook]] = successfulNothing
-      override def delete(path: Path): Future[Option[Notebook]] = successfulNothing
-      override def save(path: Path, notebook: Notebook): Future[Option[Notebook]] = successfulNothing
-    }
-
-    "initialize with default values" in {
-      noException should be thrownBy defaultInstance.initialize()
-    }
-
-    "initialize with a notebook directory" in {
-      val notebookDir = rootPath.toAbsolutePath.toFile.getAbsolutePath + "/notebook"
-      val dirConfig = ConfigFactory.parseMap(Map("notebook.dir" -> notebookDir).asJava)
-      noException should be thrownBy defaultInstance.initialize(dirConfig)
+      override def get(path: Path)(implicit ev: scala.concurrent.ExecutionContext): Future[Option[Notebook]] = successfulNothing
+      override def delete(path: Path)(implicit ev: scala.concurrent.ExecutionContext): Future[Option[Notebook]] = successfulNothing
+      override def save(path: Path, notebook: Notebook)(implicit ev: scala.concurrent.ExecutionContext): Future[Option[Notebook]] = successfulNothing
     }
 
     "retrieve a list of resources from a path" in {
