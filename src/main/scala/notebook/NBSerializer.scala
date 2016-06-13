@@ -1,6 +1,9 @@
 package notebook
 
 import java.util.Date
+
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
@@ -150,11 +153,11 @@ object NBSerializer {
                      )
 
   implicit val metadataFormat: Format[Metadata] = {
-    val f = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    val fmt = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     val r: Reads[Metadata] = (
       (JsPath \ "name").read[String] and
-        (JsPath \ "user_save_timestamp").read[String].map(x => f.parse(x)) and
-        (JsPath \ "auto_save_timestamp").read[String].map(x => f.parse(x)) and
+        (JsPath \ "user_save_timestamp").read[String].map(x => fmt.parseDateTime(x).toDate) and
+        (JsPath \ "auto_save_timestamp").read[String].map(x => fmt.parseDateTime(x).toDate) and
         (JsPath \ "language_info").readNullable[LanguageInfo].map(_.getOrElse(scala)) and
         (JsPath \ "trusted").readNullable[Boolean].map(_.getOrElse(true)) and
         (JsPath \ "sparkNotebook").readNullable[Map[String, String]] and
@@ -169,8 +172,8 @@ object NBSerializer {
     val w: Writes[Metadata] =
       OWrites { (m: Metadata) =>
         val name = JsString(m.name)
-        val user_save_timestamp = JsString(f.format(m.user_save_timestamp))
-        val auto_save_timestamp = JsString(f.format(m.auto_save_timestamp))
+        val user_save_timestamp = JsString(fmt.print(new DateTime(m.user_save_timestamp)))
+        val auto_save_timestamp = JsString(fmt.print(new DateTime(m.auto_save_timestamp)))
         val language_info = languageInfoFormat.writes(m.language_info)
         val trusted = JsBoolean(m.trusted)
         Json.obj(
