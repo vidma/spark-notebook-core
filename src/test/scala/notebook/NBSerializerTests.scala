@@ -64,7 +64,6 @@ class NBSerializerTests extends WordSpec with Matchers with BeforeAndAfterAll wi
       |
     """.stripMargin
 
-
   "Notebook serializer" should {
 
     "ser/deserialize a notebook as valid JSON" in {
@@ -79,11 +78,5 @@ class NBSerializerTests extends WordSpec with Matchers with BeforeAndAfterAll wi
       deser should be ('defined)
       val ser = NBSerializer.write(deser.get)
     }
-
-
-
   }
-
-
-
 }
