@@ -2,52 +2,56 @@ package notebook.io
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
+import java.io.{File, FileFilter}
 
-import com.typesafe.config.{ConfigFactory, Config}
+import com.typesafe.config.{Config, ConfigFactory}
 
-import scala.concurrent.{Promise, Future}
-import scala.util.{Try, Failure, Success}
+import scala.concurrent.{Future, Promise}
+import scala.util.{Failure, Success, Try}
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import notebook.NBSerializer
 import notebook.NBSerializer._
 
 trait NotebookProvider {
+
+  import NotebookProvider._
+
   def initialize(config: Config = ConfigFactory.empty()): Unit = ()
   def verifyProvider(): Future[Unit] = Future {}
-  def root:Path
-  def delete(path: Path): Future[Option[Notebook]]
-  def get(path: Path): Future[Option[Notebook]]
-  def save(path: Path, notebook: Notebook): Future[Option[Notebook]]
-  def list(path: Path): Future[List[Resource]] = {
+  def root: Path
+  def listingPolicy: File => Boolean  = NotebookProvider.DefaultListingPolicy
+  def delete(path: Path) : Future[Option[Notebook]]
+  def get(path: Path) : Future[Option[Notebook]]
+  def save(path: Path, notebook: Notebook) :  Future[Option[Notebook]]
 
-    val lengthToRoot = root.toFile.getAbsolutePath.length
-    def dropRoot(f: java.io.File) = f.getAbsolutePath.drop(lengthToRoot).dropWhile(_ == '/')
+  private [io] lazy val listFilter = new FileFilter() {
+    override def accept(file:File): Boolean =  listingPolicy(file)
+  }
 
+  def list(path: Path) : Future[List[Resource]] = {
+    def relativePath(f: java.io.File): String = root.relativize(Paths.get(f.getAbsolutePath)).toString
     Future {
-      val ps:List[java.io.File] = Option(root.resolve(path).toFile.listFiles)
-                                          .filter(_.length != 0) //toList fails if listFils is empty
-                                          .map(_.toList)
-                                          .getOrElse(Nil)
-      ps.map { f =>
-        val n = f.getName
-        if (f.isFile && n.endsWith(".snb")) {
-          NotebookResource(
-            n.dropRight(".snb".length), dropRoot(f)
-          )
-        } else if (f.isFile) {
-          GenericFile(
-            n, dropRoot(f), "file"
-          )
-        } else {
-          Repository(
-            n, dropRoot(f)
-          )
+      Option(root.resolve(path).toFile.listFiles(listFilter))
+        .filter(_.length > 0) //toList fails if listFils is empty
+        .map(_.toList)
+        .getOrElse(Nil)
+        .map(f => (f.getName,relativePath(f),f))
+        .collect {
+          case (name, relPath, file) if isNotebookFile(file) =>
+            NotebookResource(name.dropRight(".snb".length), relPath)
+          case (name, relPath, file)  if (file.isFile) => GenericFile(name, relPath, "file")
+          case (name, relPath, file) => Repository(name, relPath)
         }
-      }
     }
   }
 }
+
+object NotebookProvider {
+  val isNotebookFile: File => Boolean = f => f.isFile && f.getName.endsWith(".snb")
+  val isVisibleDirectory: File => Boolean = f => f.isDirectory && !f.getName.startsWith(".")
+  val DefaultListingPolicy = (f:File) => isNotebookFile(f) || isVisibleDirectory(f)
+}
+
 
 class FileSystemNotebooksProvider extends NotebookProvider {
   private var config: Config = _ //ouch
@@ -88,4 +92,3 @@ class FileSystemNotebooksProvider extends NotebookProvider {
   }
 
 }
-
