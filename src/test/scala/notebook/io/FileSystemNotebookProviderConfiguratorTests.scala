@@ -3,8 +3,6 @@ package notebook.io
 import java.nio.file.{Files, Path}
 
 import com.typesafe.config.ConfigFactory
-import notebook.NBSerializer.{Metadata, Notebook}
-import org.apache.commons.io.FileUtils
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import play.api.libs.json.{JsNumber, JsObject}

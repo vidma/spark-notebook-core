@@ -1,13 +1,21 @@
 package notebook
 
-import notebook.NBSerializer.{Metadata, Notebook}
+import java.util.Date
 
+import notebook.NBSerializer.Metadata
+import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import play.api.libs.json.{JsNumber, JsObject}
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 
 class NBSerializerTests extends WordSpec with Matchers with BeforeAndAfterAll with ScalaFutures {
+
+  implicit val defaultPatience =
+    PatienceConfig(timeout =  Span(2, Seconds), interval = Span(5, Millis))
 
   val testName = "test-notebook-name"
   val sparkNotebook = Map("build" -> "unit-tests")
@@ -18,21 +26,17 @@ class NBSerializerTests extends WordSpec with Matchers with BeforeAndAfterAll wi
   val customArgs = Some(List.empty[String])
   val customSparkConf = Some(JsObject( List(("spark.driverPort", JsNumber(1234))) ))
 
-  val notebook = Notebook(
-    Some(new Metadata(
-      name = testName,
-      sparkNotebook = Some(sparkNotebook),
-      customLocalRepo = customLocalRepo,
-      customRepos = customRepos,
-      customDeps = customDeps,
-      customImports = customImports,
-      customArgs = customArgs,
-      customSparkConf = customSparkConf)),
-    Some(Nil),
-    None,
-    None,
-    None
-  )
+  val metadata = new Metadata(
+    name = testName,
+    user_save_timestamp =  new DateTime(1999, 9, 9, 9, 9, 9, DateTimeZone.forID("CET") ).toDate,
+    auto_save_timestamp =  new DateTime(2001, 1, 1, 0, 0, 0, DateTimeZone.forID("CET")).toDate,
+    sparkNotebook = Some(sparkNotebook),
+    customLocalRepo = customLocalRepo,
+    customRepos = customRepos,
+    customDeps = customDeps,
+    customImports = customImports,
+    customArgs = customArgs,
+    customSparkConf = customSparkConf)
 
   val notebookSer =
     """{
@@ -60,23 +64,25 @@ class NBSerializerTests extends WordSpec with Matchers with BeforeAndAfterAll wi
       |  },
       |  "cells" : [ ]
       |}
-      |
-      |
     """.stripMargin
 
-  "Notebook serializer" should {
+  val notebookWithContent = Notebook(Some(metadata), nbformat = None, rawContent = Some(notebookSer))
+  val notebookWithoutContent = Notebook(Some(metadata), nbformat = None, rawContent = None)
 
-    "ser/deserialize a notebook as valid JSON" in {
-      val ser = NBSerializer.write(notebook)
-      val deser =  NBSerializer.read(ser)
-      deser should be ('defined)
-      deser.get should be (notebook)
+  "Notebook" should {
+
+    "serialize a notebook as valid JSON" in {
+      val futSeser = Notebook.write(notebookWithContent)
+      whenReady(futSeser) { nb =>
+        nb should be (notebookSer)
+      }
     }
 
-    "de/serialize a notebook as a valid object" in {
-      val deser = NBSerializer.read(notebookSer)
-      deser should be ('defined)
-      val ser = NBSerializer.write(deser.get)
+    "deserialize a json encoded notebook as a valid object" in {
+      val fdser = Notebook.read(notebookSer)
+      whenReady(fdser) { ser =>
+        ser should be (notebookWithContent)
+      }
     }
   }
 }
