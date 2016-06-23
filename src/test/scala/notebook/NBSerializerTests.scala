@@ -66,6 +66,8 @@ class NBSerializerTests extends WordSpec with Matchers with BeforeAndAfterAll wi
       |}
     """.stripMargin
 
+  val emptyNotebookSer ="{}"
+
   val notebookWithContent = Notebook(Some(metadata), nbformat = None, rawContent = Some(notebookSer))
   val notebookWithoutContent = Notebook(Some(metadata), nbformat = None, rawContent = None)
 
@@ -84,5 +86,13 @@ class NBSerializerTests extends WordSpec with Matchers with BeforeAndAfterAll wi
         ser should be (notebookWithContent)
       }
     }
+
+    "fail to deserialize an empty Json" in {
+      val fdser = Notebook.read(emptyNotebookSer)
+      whenReady (fdser.failed) { ex =>
+        ex shouldBe a [EmptyNotebookException]
+      }
+    }
+
   }
 }

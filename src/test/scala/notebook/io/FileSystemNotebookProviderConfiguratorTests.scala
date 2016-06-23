@@ -29,8 +29,7 @@ class FileSystemNotebookProviderConfiguratorTests extends WordSpec with Matchers
     "configure a new notebook provider" in {
       val configurator = Class.forName("notebook.io.FileSystemNotebookProviderConfigurator").newInstance().asInstanceOf[Configurable[NotebookProvider]]
       val dirConfig = ConfigFactory.parseMap(Map("notebook.dir" -> notebookDir).asJava)
-      val provider = new FileSystemNotebookProviderConfigurator()
-      val notebookProvider = provider(dirConfig )
+      val notebookProvider = configurator(dirConfig )
       notebookProvider shouldBe a[NotebookProvider]
     }
   }
