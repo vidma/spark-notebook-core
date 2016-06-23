@@ -39,14 +39,9 @@ class FileSystemNotebookProviderConfigurator extends Configurable[NotebookProvid
     }
 
     override def save(path: Path, notebook: Notebook)(implicit ev: ExecutionContext): Future[Notebook] = {
-      Notebook.write(notebook).flatMap { nb =>
-        Try {
+      Notebook.write(notebook).map { nb =>
           Files.write(path, nb.getBytes(StandardCharsets.UTF_8))
-        } match {
-          case Success(_) => Future.successful(notebook)
-          case Failure(ex) => Future.failed(ex)
-        }
-      }
+      }.map(_ => notebook)
     }
   }
 }
