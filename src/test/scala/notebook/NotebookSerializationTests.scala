@@ -96,7 +96,7 @@ class NotebookSerializationTests extends WordSpec with Matchers with BeforeAndAf
     "fail to deserialize invalid Json" in {
       val fdser = Notebook.read("{:=")
       whenReady (fdser.failed) { ex =>
-        ex shouldBe a [EmptyNotebookException]
+        ex shouldBe a [NotebookDeserializationException]
       }
     }
 

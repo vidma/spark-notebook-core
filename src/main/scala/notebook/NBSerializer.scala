@@ -230,27 +230,23 @@ object NBSerializer {
   implicit val notebookFormat = Json.format[SerNotebook]
 
   def fromJson(content: String)(implicit ex : ExecutionContext): Future[SerNotebook] = {
-    Future {
-      val maybeJson = Try{Json.parse(content)}
-      val maybeNotebook = maybeJson.map(json => json.validate[SerNotebook]).flatMap{
-        case s: JsSuccess[SerNotebook] => {
-          s.get match {
-            case SerNotebook(None,None,None,None,None) =>
-              Failure(new EmptyNotebookException)
-            case notebook =>
-              Success( notebook.cells.map { _ => notebook } getOrElse notebook.copy(cells = Some(Nil)) )
-          }
-        }
-        case e: JsError => {
-          Failure(new NotebookSerializationException(Json.stringify(JsError.toFlatJson(e))))
+    val fJson = Future {
+      Json.parse(content)
+    }.recoverWith{case ex:Throwable => Future.failed[JsValue](new NotebookDeserializationException("Cannot parse JSON", ex))}
+
+    fJson.map(json => json.validate[SerNotebook]).flatMap{
+      case s: JsSuccess[SerNotebook] => {
+        s.get match {
+          case SerNotebook(None,None,None,None,None) =>
+            Future.failed(new EmptyNotebookException)
+          case notebook =>
+            Future.successful(notebook.cells.map { _ => notebook } getOrElse notebook.copy(cells = Some(Nil)) )
         }
       }
-     maybeNotebook match {
-       case Success(res) => Future.successful(res)
-       case Failure(ex) => Future.failed(ex)
-     }
-    }.flatMap(identity)
-
+      case e: JsError => {
+        Future.failed(new NotebookDeserializationException(Json.stringify(JsError.toFlatJson(e)), null))
+      }
+    }
   }
 
   def toJson(sn: SerNotebook)(implicit ex : ExecutionContext) : Future[String] = {

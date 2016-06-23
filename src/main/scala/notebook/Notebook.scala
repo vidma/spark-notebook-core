@@ -50,6 +50,6 @@ object Notebook {
   }
 }
 
-class NotebookSerializationException(msg: String) extends Exception(msg)
+class NotebookDeserializationException(msg: String, cause: Throwable) extends Exception(msg, cause)
 class EmptyNotebookException extends Exception ()
 class NotebookNotFoundException(location:String) extends Exception(s"Notebook not found at $location")
