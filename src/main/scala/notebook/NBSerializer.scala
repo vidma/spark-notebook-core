@@ -140,8 +140,8 @@ object NBSerializer {
 
   case class Metadata(
                        name: String,
-                       user_save_timestamp: Date ,
-                       auto_save_timestamp: Date ,
+                       user_save_timestamp: Date,
+                       auto_save_timestamp: Date,
                        language_info: LanguageInfo = scala,
                        trusted: Boolean = true,
                        sparkNotebook:Option[Map[String, String]] = None,
