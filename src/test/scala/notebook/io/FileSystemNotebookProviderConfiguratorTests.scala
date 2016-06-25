@@ -3,8 +3,6 @@ package notebook.io
 import java.nio.file.{Files, Path}
 
 import com.typesafe.config.ConfigFactory
-import notebook.NBSerializer.{Metadata, Notebook}
-import org.apache.commons.io.FileUtils
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import play.api.libs.json.{JsNumber, JsObject}
@@ -31,8 +29,7 @@ class FileSystemNotebookProviderConfiguratorTests extends WordSpec with Matchers
     "configure a new notebook provider" in {
       val configurator = Class.forName("notebook.io.FileSystemNotebookProviderConfigurator").newInstance().asInstanceOf[Configurable[NotebookProvider]]
       val dirConfig = ConfigFactory.parseMap(Map("notebook.dir" -> notebookDir).asJava)
-      val provider = new FileSystemNotebookProviderConfigurator()
-      val notebookProvider = provider(dirConfig )
+      val notebookProvider = configurator(dirConfig )
       notebookProvider shouldBe a[NotebookProvider]
     }
   }

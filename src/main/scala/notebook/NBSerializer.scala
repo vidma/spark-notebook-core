@@ -1,8 +1,14 @@
 package notebook
 
 import java.util.Date
+
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 object NBSerializer {
 
@@ -10,12 +16,11 @@ object NBSerializer {
     def output_type: String
   }
 
-  case class ScalaOutput(
-                          name: String,
-                          output_type: String,
-                          prompt_number: Int,
-                          html: Option[String],
-                          text: Option[String]
+  case class ScalaOutput(name: String,
+                         override val output_type: String,
+                         prompt_number: Int,
+                         html: Option[String],
+                         text: Option[String]
                         ) extends Output
 
   implicit val scalaOutputFormat = Json.format[ScalaOutput]
@@ -24,36 +29,34 @@ object NBSerializer {
 
   implicit val executeResultMetadataFormat = Json.format[ExecuteResultMetadata]
 
-  case class ScalaExecuteResult(
-                                 metadata: ExecuteResultMetadata,
-                                 data: Map[String, String],
-                                 output_type: String,
-                                 execution_count: Int
+  case class ScalaExecuteResult(metadata: ExecuteResultMetadata,
+                                data: Map[String, String],
+                                output_type: String,
+                                execution_count: Int
                                ) extends Output
 
   implicit val scalaExecuteResultFormat = Json.format[ScalaExecuteResult]
 
-  case class PyError(
-                      name: String,
-                      output_type: String,
-                      prompt_number: Int,
-                      traceback: String
+  case class PyError(name: String,
+                     override val output_type: String,
+                     prompt_number: Int,
+                     traceback: String
                     ) extends Output
 
   implicit val pyErrorFormat = Json.format[PyError]
 
-  case class ScalaError(
-                         ename: String,
-                         output_type: String,
-                         traceback: List[String]
+  case class ScalaError(ename: String,
+                        override val output_type: String,
+                        traceback: List[String]
                        ) extends Output
+
   implicit val scalaErrorFormat = Json.format[ScalaError]
 
-
-  case class ScalaStream(name: String, output_type: String, text: String) extends Output
+  case class ScalaStream(name: String,
+                         override val output_type: String,
+                         text: String) extends Output
 
   implicit val scalaStreamFormat = Json.format[ScalaStream]
-
 
   implicit val outputReads: Reads[Output] = Reads { (js: JsValue) =>
     val tpe = (js \ "output_type").as[String]
@@ -137,8 +140,8 @@ object NBSerializer {
 
   case class Metadata(
                        name: String,
-                       user_save_timestamp: Date = new Date(0),
-                       auto_save_timestamp: Date = new Date(0),
+                       user_save_timestamp: Date ,
+                       auto_save_timestamp: Date ,
                        language_info: LanguageInfo = scala,
                        trusted: Boolean = true,
                        sparkNotebook:Option[Map[String, String]] = None,
@@ -151,11 +154,11 @@ object NBSerializer {
                      )
 
   implicit val metadataFormat: Format[Metadata] = {
-    val f = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    val fmt = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     val r: Reads[Metadata] = (
       (JsPath \ "name").read[String] and
-        (JsPath \ "user_save_timestamp").read[String].map(x => f.parse(x)) and
-        (JsPath \ "auto_save_timestamp").read[String].map(x => f.parse(x)) and
+        (JsPath \ "user_save_timestamp").read[String].map(x => fmt.parseDateTime(x).toDate) and
+        (JsPath \ "auto_save_timestamp").read[String].map(x => fmt.parseDateTime(x).toDate) and
         (JsPath \ "language_info").readNullable[LanguageInfo].map(_.getOrElse(scala)) and
         (JsPath \ "trusted").readNullable[Boolean].map(_.getOrElse(true)) and
         (JsPath \ "sparkNotebook").readNullable[Map[String, String]] and
@@ -170,8 +173,8 @@ object NBSerializer {
     val w: Writes[Metadata] =
       OWrites { (m: Metadata) =>
         val name = JsString(m.name)
-        val user_save_timestamp = JsString(f.format(m.user_save_timestamp))
-        val auto_save_timestamp = JsString(f.format(m.auto_save_timestamp))
+        val user_save_timestamp = JsString(fmt.print(new DateTime(m.user_save_timestamp)))
+        val auto_save_timestamp = JsString(fmt.print(new DateTime(m.auto_save_timestamp)))
         val language_info = languageInfoFormat.writes(m.language_info)
         val trusted = JsBoolean(m.trusted)
         Json.obj(
@@ -218,49 +221,41 @@ object NBSerializer {
 
   implicit val worksheetFormat = Json.format[Worksheet]
 
-  sealed trait Resource {
-    def name:String
-    def path:String
-  }
+  case class SerNotebook(metadata: Option[Metadata] = None,
+                          cells: Option[List[Cell]] = Some(Nil),
+                          worksheets: Option[List[Worksheet]] = None,
+                          autosaved: Option[List[Worksheet]] = None,
+                          nbformat: Option[Int]
+                        )
 
-  case class GenericFile(name:String, path:String, tpe:String) extends Resource
-  case class Repository(name:String, path:String) extends Resource
-  case class NotebookResource(name:String, path:String) extends Resource
+  implicit val notebookFormat = Json.format[SerNotebook]
 
-  case class Notebook(
-                       metadata: Option[Metadata] = None,
-                       cells: Option[List[Cell]] = Some(Nil),
-                       worksheets: Option[List[Worksheet]] = None,
-                       autosaved: Option[List[Worksheet]] = None,
-                       nbformat: Option[Int]) {
-    def name = metadata.map(_.name).getOrElse("Anonymous")
-  }
+  def fromJson(content: String)(implicit ex : ExecutionContext): Future[SerNotebook] = {
+    val fJson = Future {
+      Json.parse(content)
+    }.recoverWith{case ex:Throwable => Future.failed[JsValue](new NotebookDeserializationException("Cannot parse JSON", ex))}
 
-  implicit val notebookFormat = Json.format[Notebook]
-
-  def fromJson(json: JsValue): Option[Notebook] = {
-    json.validate[Notebook] match {
-      case s: JsSuccess[Notebook] => {
+    fJson.map(json => json.validate[SerNotebook]).flatMap{
+      case s: JsSuccess[SerNotebook] => {
         s.get match {
-          case Notebook(None,None,None,None,None) =>
-            None
+          case SerNotebook(None,None,None,None,None) =>
+            Future.failed(new EmptyNotebookException)
           case notebook =>
-            Some( notebook.cells.map { _ => notebook } getOrElse notebook.copy(cells = Some(Nil)) )
+            Future.successful(notebook.cells.map { _ => notebook } getOrElse notebook.copy(cells = Some(Nil)) )
         }
       }
       case e: JsError => {
-        val ex = new RuntimeException(Json.stringify(JsError.toFlatJson(e)))
-        throw ex
+        Future.failed(new NotebookDeserializationException(Json.stringify(JsError.toFlatJson(e)), null))
       }
     }
   }
 
-  def read(s: String): Option[ Notebook ] = {
-    fromJson(Json.parse(s))
+  def toJson(sn: SerNotebook)(implicit ex : ExecutionContext) : Future[String] = {
+    Future {
+      Json.prettyPrint(notebookFormat.writes(sn))
+    }
   }
 
-  def write(n: Notebook): String = {
-    Json.prettyPrint(notebookFormat.writes(n))
-  }
+
 
 }
