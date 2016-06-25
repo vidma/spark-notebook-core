@@ -103,6 +103,7 @@ object NBSerializer {
                        source: String,
                        language: Option[String],
                        prompt_number: Option[Int] = None,
+                       output: Option[JsObject] = None,
                        outputs: Option[List[Output]] = None
                      ) extends Cell
 
