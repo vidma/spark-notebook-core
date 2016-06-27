@@ -102,7 +102,7 @@ object NBSerializer {
 
   case class CodeCell(
                        metadata: CellMetadata,
-                       cell_type: String = "code",
+                       cell_type: String,
                        source: String,
                        language: Option[String],
                        prompt_number: Option[Int] = None,
@@ -199,11 +199,11 @@ object NBSerializer {
   implicit val cellReads: Reads[Cell] = Reads { (js: JsValue) =>
     val tpe = (js \ "cell_type").as[String]
     tpe match {
-      case "code" => codeCellFormat.reads(js)
-      case "heading" => headingCellFormat.reads(js)
-      case "markdown" => markdownCellFormat.reads(js)
-      case "raw" => rawCellFormat.reads(js)
-      case x =>
+      case "code" | "output" => codeCellFormat.reads(js)
+      case "heading"         => headingCellFormat.reads(js)
+      case "markdown"        => markdownCellFormat.reads(js)
+      case "raw"             => rawCellFormat.reads(js)
+      case x                 =>
         throw new IllegalStateException("Cannot read this cell_type: " + x)
     }
   }
