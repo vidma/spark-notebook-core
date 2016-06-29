@@ -36,7 +36,7 @@ trait NotebookProvider {
     override def accept(file:File): Boolean =  listingPolicy(file)
   }
 
-  def list(path: Path) : Future[List[Resource]] = {
+  def list(path: Path)(implicit ev: ExecutionContext): Future[List[Resource]] = {
     def relativePath(f: java.io.File): String = root.relativize(Paths.get(f.getAbsolutePath)).toString
     Future {
 
