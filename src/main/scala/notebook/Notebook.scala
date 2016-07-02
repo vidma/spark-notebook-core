@@ -11,7 +11,10 @@ trait Notebook {
   def autosaved: Option[List[Worksheet]] = None
   def nbformat: Option[Int]
   def name: String = metadata.map(_.name).getOrElse("Anonymous")
-  def normalizedName: String = name.toLowerCase.replaceAll("[^\\.a-z_-]", "-")
+  def normalizedName: String = {
+    val n = name.toLowerCase.replaceAll("[^\\.a-z_-]", "-")
+    n.dropWhile(_ == '-').reverse.dropWhile(_ == '-').reverse
+  }
   def rawContent: Option[String] = None
   def isFromRaw = rawContent.isDefined
 }
