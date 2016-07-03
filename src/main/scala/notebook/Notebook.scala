@@ -12,7 +12,7 @@ trait Notebook {
   def nbformat: Option[Int]
   def name: String = metadata.map(_.name).getOrElse("Anonymous")
   def normalizedName: String = {
-    val n = name.toLowerCase.replaceAll("[^\\.a-z_-]", "-")
+    val n = name.toLowerCase.replaceAll("[^\\.a-z1-9_-]", "-")
     n.dropWhile(_ == '-').reverse.dropWhile(_ == '-').reverse
   }
   def rawContent: Option[String] = None
