@@ -171,7 +171,6 @@ object NBSerializer {
         (JsPath \ "customSparkConf").readNullable[JsObject] and
         (JsPath \ "customVars").readNullable[Map[String,String]]
       )(Metadata.apply _)
-//(JsPath \ "customEnv").readNullable[Map[String, String]]
 
     val w: Writes[Metadata] =
       OWrites { (m: Metadata) =>
