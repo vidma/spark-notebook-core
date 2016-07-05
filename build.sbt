@@ -6,14 +6,6 @@ name := "spark-notebook-core"
 
 version := "0.2.0-SNAPSHOT"
 
-bintrayRepository := "spark-notebook"
-
-bintrayOrganization := Some("data-fellas")
-
-bintrayVcsUrl := Some("https://github.com/spark-notebook/spark-notebook-core.git")
-
-bintrayOmitLicense := true
-
 publishArtifact in Test := false
 
 publishMavenStyle := true
