@@ -151,7 +151,7 @@ object NBSerializer {
                        customImports: Option[List[String]] = None,
                        customArgs: Option[List[String]] = None,
                        customSparkConf: Option[JsObject] = None,
-                       customEnv: Option[Map[String, String]] = None
+                       customVars: Option[Map[String, String]] = None
                      )
 
   implicit val metadataFormat: Format[Metadata] = {
@@ -169,7 +169,7 @@ object NBSerializer {
         (JsPath \ "customImports").readNullable[List[String]] and
         (JsPath \ "customArgs").readNullable[List[String]] and
         (JsPath \ "customSparkConf").readNullable[JsObject] and
-        (JsPath \ "customEnv").readNullable[Map[String,String]]
+        (JsPath \ "customVars").readNullable[Map[String,String]]
       )(Metadata.apply _)
 //(JsPath \ "customEnv").readNullable[Map[String, String]]
 
@@ -193,7 +193,7 @@ object NBSerializer {
           "customImports" → m.customImports,
           "customArgs" → m.customArgs,
           "customSparkConf" → m.customSparkConf,
-          "customEnv" -> m.customEnv
+          "customVars" -> m.customVars
         )
       }
 

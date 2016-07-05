@@ -25,7 +25,7 @@ class NotebookSerializationTests extends WordSpec with Matchers with BeforeAndAf
   val customImports = Some(List("""import org.cusom.dependency.SomeClass"""))
   val customArgs = Some(List.empty[String])
   val customSparkConf = Some(JsObject( List(("spark.driverPort", JsNumber(1234))) ))
-  val customEnv = Some(Map( "HDFS_ROOT" -> "/tmp", "INTERNAL_DOCS" ->  "confidential"))
+  val customVars = Some(Map( "HDFS_ROOT" -> "/tmp", "INTERNAL_DOCS" ->  "confidential"))
 
   val metadata = new Metadata(
     name = testName,
@@ -38,7 +38,7 @@ class NotebookSerializationTests extends WordSpec with Matchers with BeforeAndAf
     customImports = customImports,
     customArgs = customArgs,
     customSparkConf = customSparkConf,
-    customEnv = customEnv
+    customVars = customVars
   )
 
   val notebookSer =
@@ -64,7 +64,7 @@ class NotebookSerializationTests extends WordSpec with Matchers with BeforeAndAf
       |    "customSparkConf" : {
       |      "spark.driverPort" : 1234
       |    },
-      |    "customEnv" : {
+      |    "customVars" : {
       |      "HDFS_ROOT" : "/tmp",
       |      "INTERNAL_DOCS" : "confidential"
       |    }
