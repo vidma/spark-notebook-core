@@ -139,6 +139,7 @@ object NBSerializer {
   val scala: LanguageInfo = LanguageInfo("scala", "scala", "text/x-scala")
 
   case class Metadata(
+                       id: String,
                        name: String,
                        user_save_timestamp: Date,
                        auto_save_timestamp: Date,
@@ -157,7 +158,8 @@ object NBSerializer {
   implicit val metadataFormat: Format[Metadata] = {
     val fmt = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     val r: Reads[Metadata] = (
-      (JsPath \ "name").read[String] and
+      (JsPath \ "id").readNullable[String].map(_.getOrElse(java.util.UUID.randomUUID.toString)) and
+        (JsPath \ "name").read[String] and
         (JsPath \ "user_save_timestamp").read[String].map(x => fmt.parseDateTime(x).toDate) and
         (JsPath \ "auto_save_timestamp").read[String].map(x => fmt.parseDateTime(x).toDate) and
         (JsPath \ "language_info").readNullable[LanguageInfo].map(_.getOrElse(scala)) and
@@ -180,6 +182,7 @@ object NBSerializer {
         val language_info = languageInfoFormat.writes(m.language_info)
         val trusted = JsBoolean(m.trusted)
         Json.obj(
+          "id" → m.id,
           "name" → name,
           "user_save_timestamp" → user_save_timestamp,
           "auto_save_timestamp" → auto_save_timestamp,
