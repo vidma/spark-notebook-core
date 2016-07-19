@@ -24,6 +24,7 @@ class FileSystemNotebookProviderTests extends WordSpec with Matchers with Before
   var provider: NotebookProvider = _
   var target: Path = _
 
+  val id = "foo-bar-loo-lar"
   val testName = "test-notebook-name"
   val sparkNotebook = Map("build" -> "unit-tests")
   val customLocalRepo = Some("local-repo")
@@ -34,6 +35,7 @@ class FileSystemNotebookProviderTests extends WordSpec with Matchers with Before
   val customSparkConf = Some(JsObject( List(("spark.driverPort", JsNumber(1234))) ))
 
   val metadata = new Metadata(
+    id =  id,
     name = testName,
     user_save_timestamp =  new DateTime(1999, 9, 9, 9, 9, 9,DateTimeZone.forID("CET")).toDate,
     auto_save_timestamp =  new DateTime(2001, 1, 1, 0, 0, 0,DateTimeZone.forID("CET")).toDate,
@@ -48,6 +50,7 @@ class FileSystemNotebookProviderTests extends WordSpec with Matchers with Before
   val raw =
     """{
       |"metadata" : {
+      |  "id" : "foo-bar-loo-lar",
       |  "name" : "test-notebook-name",
       |  "user_save_timestamp" : "1999-09-09T09:09:09.000Z",
       |  "auto_save_timestamp" : "2001-01-01T00:00:00.000Z",
