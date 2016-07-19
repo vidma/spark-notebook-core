@@ -89,12 +89,7 @@ class NotebookSerializationTests extends WordSpec with Matchers with BeforeAndAf
     }
 
     "deserialize a json encoded notebook as a valid object" in {
-      println(notebookSer)
-      println("*********")
       val fdser = Notebook.read(notebookSer)
-      val duration = new scala.concurrent.duration.FiniteDuration(1L, java.util.concurrent.TimeUnit.SECONDS)
-      val res = scala.concurrent.Await.result(fdser, duration)
-      res should be (notebookWithContent)
       whenReady(fdser) { ser =>
         ser should be (notebookWithContent)
       }
