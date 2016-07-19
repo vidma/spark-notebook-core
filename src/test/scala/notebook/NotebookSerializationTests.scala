@@ -17,6 +17,7 @@ class NotebookSerializationTests extends WordSpec with Matchers with BeforeAndAf
   implicit val defaultPatience =
     PatienceConfig(timeout =  Span(2, Seconds), interval = Span(5, Millis))
 
+  val testId = "foo-bar-loo-lar"
   val testName = "test-notebook-name"
   val sparkNotebook = Map("build" -> "unit-tests")
   val customLocalRepo = Some("local-repo")
@@ -28,6 +29,7 @@ class NotebookSerializationTests extends WordSpec with Matchers with BeforeAndAf
   val customVars = Some(Map( "HDFS_ROOT" -> "/tmp", "INTERNAL_DOCS" ->  "confidential"))
 
   val metadata = new Metadata(
+    id = testId,
     name = testName,
     user_save_timestamp =  new DateTime(1999, 9, 9, 9, 9, 9, DateTimeZone.forID("CET") ).toDate,
     auto_save_timestamp =  new DateTime(2001, 1, 1, 0, 0, 0, DateTimeZone.forID("CET")).toDate,
@@ -44,6 +46,7 @@ class NotebookSerializationTests extends WordSpec with Matchers with BeforeAndAf
   val notebookSer =
     """{
       |  "metadata" : {
+      |    "id" : "foo-bar-loo-lar",
       |    "name" : "test-notebook-name",
       |    "user_save_timestamp" : "1999-09-09T09:09:09.000Z",
       |    "auto_save_timestamp" : "2001-01-01T00:00:00.000Z",
@@ -75,7 +78,6 @@ class NotebookSerializationTests extends WordSpec with Matchers with BeforeAndAf
 
 
   val notebookWithContent = Notebook(Some(metadata), nbformat = None, rawContent = Some(notebookSer))
-  val notebookWithoutContent = Notebook(Some(metadata), nbformat = None, rawContent = None)
 
   "Notebook" should {
 
