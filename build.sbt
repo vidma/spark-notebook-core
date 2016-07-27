@@ -4,7 +4,7 @@ organization := "guru.data-fellas"
 
 name := "spark-notebook-core"
 
-version := "0.2.1-SNAPSHOT"
+version := "0.2.2-SNAPSHOT"
 
 publishArtifact in Test := false
 
