@@ -16,6 +16,7 @@ trait Configurable[T] {
   def apply(config: Config = ConfigFactory.empty()) : T
 }
 
+
 trait NotebookProvider {
 
   import NotebookProvider._
@@ -28,9 +29,12 @@ trait NotebookProvider {
 
   def delete(path: Path)(implicit ev: ExecutionContext): Future[Notebook]
 
-  def get(path: Path)(implicit ev: ExecutionContext): Future[Notebook]
+  def get(path: Path, version: Option[Version] = None)(implicit ev: ExecutionContext): Future[Notebook]
 
-  def save(path: Path, notebook: Notebook)(implicit ev: ExecutionContext): Future[Notebook]
+  def save(path: Path, notebook: Notebook, saveSpec: Option[String] = None)(implicit ev: ExecutionContext): Future[Notebook]
+
+  // retrieves available versions of the provided notebook path. To be extended by providers that support versioning.
+  def versions(path:Path)(implicit ev: ExecutionContext): Future[List[Version]] = Future.successful(Nil)
 
   private [io] lazy val listFilter = new FileFilter() {
     override def accept(file:File): Boolean =  listingPolicy(file)
@@ -54,6 +58,9 @@ trait NotebookProvider {
     }
   }
 }
+
+case class Version (id: String, message: String, timestamp: Long)
+
 
 object NotebookProvider {
   val isNotebookFile: File => Boolean = f => f.isFile && f.getName.endsWith(".snb")

@@ -11,7 +11,6 @@ import scala.util.{Failure, Success, Try}
 
 class FileSystemNotebookProviderConfigurator extends Configurable[NotebookProvider] {
 
-
   override def apply(config: Config): NotebookProvider = new ConfigurableFileSystemNotebook(config)
 
   private[FileSystemNotebookProviderConfigurator] class ConfigurableFileSystemNotebook(val config: Config) extends NotebookProvider {
@@ -34,11 +33,11 @@ class FileSystemNotebookProviderConfigurator extends Configurable[NotebookProvid
       }
     }
 
-    override def get(path: Path)(implicit ev: ExecutionContext): Future[Notebook] = {
+    override def get(path: Path, version: Option[Version] = None)(implicit ev: ExecutionContext): Future[Notebook] = {
       Future{Files.readAllBytes(path)}.flatMap(bytes => Notebook.read(new String(bytes, StandardCharsets.UTF_8)))
     }
 
-    override def save(path: Path, notebook: Notebook)(implicit ev: ExecutionContext): Future[Notebook] = {
+    override def save(path: Path, notebook: Notebook, saveSpec:Option[String] = None)(implicit ev: ExecutionContext): Future[Notebook] = {
       Notebook.write(notebook).map { nb =>
           Files.write(path, nb.getBytes(StandardCharsets.UTF_8))
       }.map(_ => notebook)

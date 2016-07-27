@@ -48,10 +48,11 @@ class NotebookProviderTests extends WordSpec with Matchers with BeforeAndAfterAl
   }
 
   class BaseProvider extends NotebookProvider {
+    type SaveSpec = Unit
     override def root: Path = rootPath
-    override def get(path: Path)(implicit ev: ExecutionContext): Future[Notebook] = ???
+    override def get(path: Path, version: Option[Version])(implicit ev: ExecutionContext): Future[Notebook] = ???
     override def delete(path: Path)(implicit ev: ExecutionContext): Future[Notebook] = ???
-    override def save(path: Path, notebook: Notebook)(implicit ev: ExecutionContext): Future[Notebook] = ???
+    override def save(path: Path, notebook: Notebook, saveSpec:Option[String] = None)(implicit ev: ExecutionContext): Future[Notebook] = ???
   }
 
   val T = true
