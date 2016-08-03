@@ -1,8 +1,7 @@
 package notebook.io
 
-import java.io.File
+
 import java.nio.file.{Files, Path, Paths}
-import java.util.TimeZone
 
 import com.typesafe.config.ConfigFactory
 import notebook.NBSerializer.Metadata
@@ -16,7 +15,8 @@ import play.api.libs.json.{JsNumber, JsObject}
 import play.libs.Json
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
+import scala.concurrent.{Await}
+import scala.concurrent.duration._
 import scala.io.Source
 import scala.util.Try
 
@@ -24,8 +24,10 @@ class FileSystemNotebookProviderTests extends WordSpec with Matchers with Before
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
+  val DefaultWait = 2 //seconds
+  val DefaultWaitSeconds = DefaultWait seconds
   implicit val defaultPatience =
-    PatienceConfig(timeout =  Span(2, Seconds), interval = Span(5, Millis))
+    PatienceConfig(timeout =  Span(DefaultWait, Seconds), interval = Span(5, Millis))
 
   var tempPath: Path = _
   var provider: NotebookProvider = _
@@ -91,9 +93,9 @@ class FileSystemNotebookProviderTests extends WordSpec with Matchers with Before
     notebookPath = tempPath.resolve("notebooks")
     Files.createDirectories(notebookPath)
 
-    val dirConfig = ConfigFactory.parseMap(Map("notebook.dir" -> notebookPath.toAbsolutePath.toString).asJava)
+    val dirConfig = ConfigFactory.parseMap(Map("notebooks.dir" -> notebookPath.toAbsolutePath.toString).asJava)
     val configurator = new FileSystemNotebookProviderConfigurator()
-    provider = configurator(dirConfig)
+    provider = Await.result(configurator(dirConfig), DefaultWaitSeconds)
   }
 
   override def afterAll: Unit = {

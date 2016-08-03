@@ -22,16 +22,32 @@ class FileSystemNotebookProviderConfiguratorTests extends WordSpec with Matchers
 
 
   "File system notebook provider configurator" should {
+
+    def instantiateProvider() = Class.forName("notebook.io.FileSystemNotebookProviderConfigurator").newInstance().asInstanceOf[Configurable[NotebookProvider]]
+
     "be instantiable" in {
-      noException should be thrownBy (Class.forName("notebook.io.FileSystemNotebookProviderConfigurator").newInstance().asInstanceOf[Configurable[NotebookProvider]])
+      noException should be thrownBy (instantiateProvider)
     }
 
     "configure a new notebook provider" in {
-      val configurator = Class.forName("notebook.io.FileSystemNotebookProviderConfigurator").newInstance().asInstanceOf[Configurable[NotebookProvider]]
-      val dirConfig = ConfigFactory.parseMap(Map("notebook.dir" -> notebookDir).asJava)
-      val notebookProvider = configurator(dirConfig )
-      notebookProvider shouldBe a[NotebookProvider]
+      val configurator = instantiateProvider()
+      val dirConfig = ConfigFactory.parseMap(Map("notebooks.dir" -> notebookDir).asJava)
+      val notebookProvider = configurator(dirConfig)
+      whenReady(notebookProvider) { nbp =>
+        nbp shouldBe a[NotebookProvider]
+      }
     }
+
+    "fail when the configuration is missing" in {
+      val configurator = instantiateProvider()
+      val dirConfig = ConfigFactory.parseMap(Map("foo.bar" -> "boo").asJava)
+      val notebookProvider = configurator(dirConfig)
+      whenReady(notebookProvider.failed) { nbp =>
+        nbp shouldBe a[ConfigurationMissingException]
+        nbp.getMessage should include (FileSystemNotebookProviderConfigurator.NotebooksDir)
+      }
+    }
+
   }
 
 }

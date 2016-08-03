@@ -11,11 +11,18 @@ import scala.util.{Failure, Success, Try}
 
 class FileSystemNotebookProviderConfigurator extends Configurable[NotebookProvider] {
 
-  override def apply(config: Config): NotebookProvider = new ConfigurableFileSystemNotebook(config)
+  import FileSystemNotebookProviderConfigurator._
 
-  private[FileSystemNotebookProviderConfigurator] class ConfigurableFileSystemNotebook(val config: Config) extends NotebookProvider {
+  override def apply(config: Config)(implicit ec:ExecutionContext): Future[NotebookProvider] = {
 
-    override lazy val root = Paths.get(config.getString("notebooks.dir"))
+    val fDir:Future[Path] = Future {
+      val dir = config.getString(NotebooksDir)
+      Paths.get(dir)
+    }.recoverWith{case t:Throwable => Future.failed(new ConfigurationMissingException(NotebooksDir))}
+    fDir.map(dir => new FileSystemNotebookProvider(dir))
+  }
+
+  private[FileSystemNotebookProviderConfigurator] class FileSystemNotebookProvider(override val root: Path) extends NotebookProvider {
 
     override def delete(path: Path)(implicit ev: ExecutionContext): Future[Notebook] = {
       get(path).flatMap { notebook =>
@@ -43,4 +50,7 @@ class FileSystemNotebookProviderConfigurator extends Configurable[NotebookProvid
       }.map(_ => notebook)
     }
   }
+}
+object FileSystemNotebookProviderConfigurator {
+  val NotebooksDir = "notebooks.dir"
 }

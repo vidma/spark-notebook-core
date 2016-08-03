@@ -12,11 +12,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
-trait Configurable[T] {
-  def apply(config: Config = ConfigFactory.empty()) : T
-}
-
-
 trait NotebookProvider {
 
   import NotebookProvider._
@@ -40,7 +35,7 @@ trait NotebookProvider {
     override def accept(file:File): Boolean =  listingPolicy(file)
   }
 
-  def list(path: Path)(implicit ev: ExecutionContext): Future[List[Resource]] = {
+  def list(path: Path)(implicit ec: ExecutionContext): Future[List[Resource]] = {
     def relativePath(f: java.io.File): String = root.relativize(Paths.get(f.getAbsolutePath)).toString
     Future {
 
