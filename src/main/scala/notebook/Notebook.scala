@@ -45,12 +45,8 @@ object Notebook {
   }
 
   def write(nb: Notebook)(implicit ex : ExecutionContext): Future[String] = {
-    Future(nb.rawContent).flatMap {
-      case Some(content) => Future.successful(content)
-      case None =>
-        val snb = SerNotebook(nb.metadata, nb.cells, nb.worksheets, nb.autosaved, nb.nbformat)
-        NBSerializer.toJson(snb)
-    }
+    val snb = SerNotebook(nb.metadata, nb.cells, nb.worksheets, nb.autosaved, nb.nbformat)
+    NBSerializer.toJson(snb)
   }
 }
 

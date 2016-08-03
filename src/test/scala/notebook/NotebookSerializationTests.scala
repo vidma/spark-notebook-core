@@ -73,8 +73,7 @@ class NotebookSerializationTests extends WordSpec with Matchers with BeforeAndAf
       |    }
       |  },
       |  "cells" : [ ]
-      |}
-    """.stripMargin
+      |}""".stripMargin
 
 
   val notebookWithContent = Notebook(Some(metadata), nbformat = None, rawContent = Some(notebookSer))
@@ -106,6 +105,22 @@ class NotebookSerializationTests extends WordSpec with Matchers with BeforeAndAf
       val fdser = Notebook.read("{:=")
       whenReady (fdser.failed) { ex =>
         ex shouldBe a [NotebookDeserializationException]
+      }
+    }
+
+    "serialize to a diff-friendly format" in {
+      val origNotebook = Notebook(Some(metadata), nbformat = None, rawContent = None)
+      val deltaNotebook = Notebook(Some(metadata.copy(customLocalRepo = Some("other-local-repo"))), nbformat = None, rawContent = None)
+      val diff = for {
+        origNbSer <- Notebook.write(origNotebook)
+        deltaNbSer <- Notebook.write(deltaNotebook)
+      } yield {
+        val toLines: String => Array[String] = s => s.split("\n")
+        toLines(deltaNbSer).toSet diff toLines(origNbSer).toSet
+      }
+      whenReady(diff) {diff=>
+        diff.head should include ("other-local-repo")
+        diff.head should not include ("metadata") // to exclude that the diff is the whole doc
       }
     }
 

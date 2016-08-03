@@ -1,7 +1,7 @@
 package notebook.io
 
+
 import java.nio.file.{Files, Path, Paths}
-import java.util.TimeZone
 
 import com.typesafe.config.ConfigFactory
 import notebook.NBSerializer.Metadata
@@ -9,20 +9,29 @@ import notebook.Notebook
 import org.apache.commons.io.FileUtils
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Seconds, Span}
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import play.api.libs.json.{JsNumber, JsObject}
+import play.libs.Json
 
 import scala.collection.JavaConverters._
+import scala.concurrent.{Await}
+import scala.concurrent.duration._
+import scala.io.Source
+import scala.util.Try
 
 class FileSystemNotebookProviderTests extends WordSpec with Matchers with BeforeAndAfterAll with ScalaFutures {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  var notebook: Notebook = _
-  var temp: Path = _
+  val DefaultWait = 2 //seconds
+  val DefaultWaitSeconds = DefaultWait seconds
+  implicit val defaultPatience =
+    PatienceConfig(timeout =  Span(DefaultWait, Seconds), interval = Span(5, Millis))
+
+  var tempPath: Path = _
   var provider: NotebookProvider = _
-  var target: Path = _
+  var notebookPath: Path = _
 
   val id = "foo-bar-loo-lar"
   val testName = "test-notebook-name"
@@ -70,39 +79,63 @@ class FileSystemNotebookProviderTests extends WordSpec with Matchers with Before
       |  "customArgs" : [ ],
       |  "customSparkConf" : {
       |    "spark.driverPort" : 1234
-      |  }
+      |  },
+      |  "customVars" : null
       |},
       |"cells" : [ ]
       |}
     """.stripMargin
 
+  val notebook = Notebook(metadata = Some(metadata), nbformat = None, rawContent = Some(raw))
+
   override def beforeAll: Unit = {
-    notebook = Notebook(metadata = Some(metadata), nbformat = None, rawContent = Some(raw))
+    tempPath = Files.createTempDirectory("file-system-notebook-provider")
+    notebookPath = tempPath.resolve("notebooks")
+    Files.createDirectories(notebookPath)
 
-    temp = Files.createTempDirectory("file-system-notebook-provider")
-    val notebookDir = temp.toAbsolutePath.toFile.getAbsolutePath + "/notebook"
-    val dirConfig = ConfigFactory.parseMap(Map("notebook.dir" -> notebookDir).asJava)
+    val dirConfig = ConfigFactory.parseMap(Map("notebooks.dir" -> notebookPath.toAbsolutePath.toString).asJava)
     val configurator = new FileSystemNotebookProviderConfigurator()
-    provider = configurator(dirConfig)
-
-    target = temp.resolve(s"$testName.snb")
+    provider = Await.result(configurator(dirConfig), DefaultWaitSeconds)
   }
 
   override def afterAll: Unit = {
-    FileUtils.deleteDirectory( temp.toFile )
+    FileUtils.deleteDirectory( tempPath.toFile )
   }
 
   "File system notebook provider" should {
 
     "create a notebook file" in {
-      whenReady( provider.save(target, notebook) ,  timeout(Span(1, Seconds))) { n =>
-        n should be (notebook)
+      val nbPath = notebookPath.resolve("testNew.snb")
+      assume(!nbPath.toFile.exists())
+      whenReady( provider.save(nbPath, notebook) ) { n =>
+        nbPath.toFile.exists() should be (true)
       }
     }
 
-    "load created file" in {
-      whenReady( provider.get(target), timeout(Span(1, Seconds)) ) { n =>
-        n should be (notebook)
+    "created content should be valid JSON" in {
+      val nbPath = notebookPath.resolve("testJson.snb")
+      whenReady( provider.save(nbPath, notebook) ) { n =>
+        val content = Source.fromFile(nbPath.toFile).mkString("")
+        Try{Json.parse(content)} should be ('success)
+      }
+    }
+
+    "load saved file" in {
+      val nbPath = notebookPath.resolve("testLoad.snb")
+      val loadedNb = for {
+        _ <- provider.save(nbPath, notebook)
+        loaded <- provider.get(nbPath)
+      } yield loaded
+
+      whenReady( loadedNb ) { nb =>
+        nb.normalizedName should be (notebook.normalizedName)
+        nb.metadata should be (notebook.metadata)
+        nb.cells should be (notebook.cells)
+        nb.name should be (notebook.name)
+        nb.autosaved should be (notebook.autosaved)
+        nb.nbformat should be (notebook.nbformat)
+        nb.worksheets should be (notebook.worksheets)
+        // avoid comparing the raw content b/c it differs in indentation after JSON pretty print
       }
     }
 
@@ -113,18 +146,23 @@ class FileSystemNotebookProviderTests extends WordSpec with Matchers with Before
     }
 
     "delete the file" in {
-      whenReady( provider.delete(target) ) { n =>
-        n should be (notebook)
+      val nbPath = notebookPath.resolve("testDeleted.snb")
+      val deletedNb = for {
+        _ <- provider.save(nbPath,notebook)
+        deleted <- provider.delete(nbPath)
+      } yield deleted
+
+      whenReady( deletedNb ) { n =>
+        nbPath.toFile.exists() should be (false)
       }
     }
 
     "fail to load deleted file" in {
-      whenReady( provider.get(target).failed ) { n =>
+      val nbPath = notebookPath.resolve("notThere.snb")
+      whenReady( provider.get(nbPath).failed ) { n =>
         n shouldBe a [java.nio.file.NoSuchFileException]
       }
     }
-
-
 
   }
 
