@@ -28,6 +28,12 @@ trait NotebookProvider {
 
   def save(path: Path, notebook: Notebook, saveSpec: Option[String] = None)(implicit ev: ExecutionContext): Future[Notebook]
 
+  // Moves the notebook at src Path to the dest Path
+  def move(src:Path, dest: Path)(implicit ev: ExecutionContext): Future[Path]
+
+  // Renames a notebook
+  def rename(src: Path, newName: String, nb: Notebook)(implicit ev: ExecutionContext): Future[Path]
+
   // retrieves available versions of the provided notebook path. To be extended by providers that support versioning.
   def versions(path:Path)(implicit ev: ExecutionContext): Future[List[Version]] = Future.successful(Nil)
 
