@@ -17,6 +17,7 @@ trait Notebook {
   }
   def rawContent: Option[String] = None
   def isFromRaw = rawContent.isDefined
+  def updateMetadata(newMeta: Option[Metadata]): Notebook
 }
 
 
@@ -28,7 +29,9 @@ object Notebook {
                            override val autosaved: Option[List[Worksheet]] = None,
                            override val nbformat: Option[Int],
                            override val rawContent: Option[String]
-                         ) extends Notebook
+                         ) extends Notebook {
+    override def updateMetadata(newMeta: Option[Metadata]): Notebook = this.copy(metadata = newMeta)
+  }
 
   def apply(metadata: Option[Metadata] = None,
             cells: Option[List[Cell]] = Some(Nil),

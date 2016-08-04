@@ -49,6 +49,16 @@ class FileSystemNotebookProviderConfigurator extends Configurable[NotebookProvid
           Files.write(path, nb.getBytes(StandardCharsets.UTF_8))
       }.map(_ => notebook)
     }
+
+    // Moves the notebook at src Path to the dest Path
+    override def moveInternal(src: Path, dest: Path)(implicit ev: ExecutionContext): Future[Path] = Future {
+      require(src.toFile.exists(), s"Notebook source at [$src] should exist")
+      require(dest.getParent.toFile.exists(), s"Directory at [${dest.getParent()}] should exist")
+      require(!dest.toFile.exists(), s"Notebook dest at [$dest] should not exist")
+      Files.move(src, dest)
+      dest
+    }
+
   }
 }
 object FileSystemNotebookProviderConfigurator {
