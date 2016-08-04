@@ -176,6 +176,20 @@ class FileSystemNotebookProviderTests extends WordSpec with Matchers with Before
       }
     }
 
+    "preserve the id of a renamed notebook" in {
+      val nbPath = notebookPath.resolve("testinternal-rename.snb")
+      val originalId = notebook.metadata.get.id
+      val res = for {
+        nb <- provider.save(nbPath, notebook)
+        _ <- provider.renameInternal(nbPath, "testinternal-renamed")
+        renamed <- provider.get(nbPath)
+      } yield renamed
+
+      whenReady(res) { renamedNb =>
+        renamedNb.metadata.get.id should be(originalId)
+      }
+    }
+
     "fail to move an unexisting notebook" in {
       whenReady( provider.move(Paths.get("/path/to/nowhere"), notebookPath).failed ) { n =>
         n shouldBe a [java.lang.IllegalArgumentException]

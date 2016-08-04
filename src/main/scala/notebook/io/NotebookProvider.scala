@@ -51,7 +51,7 @@ trait NotebookProvider {
     val now = new java.util.Date()
     for {
       nb <- get(path)
-      meta = nb.metadata.map(_.copy(id=java.util.UUID.randomUUID.toString, name = newName, user_save_timestamp = now))
+      meta = nb.metadata.map(_.copy(name = newName, user_save_timestamp = now))
         .orElse(Some(new Metadata(java.util.UUID.randomUUID.toString, newName, now, now)))
       renamedNb = nb.updateMetadata(meta)
       _ <- save(path, renamedNb)
