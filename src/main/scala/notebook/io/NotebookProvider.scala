@@ -53,7 +53,7 @@ trait NotebookProvider {
       nb <- get(path)
       meta = nb.metadata.map(_.copy(id=java.util.UUID.randomUUID.toString, name = newName, user_save_timestamp = now))
         .orElse(Some(new Metadata(java.util.UUID.randomUUID.toString, newName, now, now)))
-      renamedNb = Notebook(meta, nb.cells, nb.worksheets, nb.autosaved, nb.nbformat, nb.rawContent)
+      renamedNb = nb.updateMetadata(meta)
       _ <- save(path, renamedNb)
     } yield (path)
   }
