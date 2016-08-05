@@ -86,7 +86,11 @@ class FileSystemNotebookProviderTests extends WordSpec with Matchers with Before
       |}
     """.stripMargin
 
-  val notebook = Notebook(metadata = Some(metadata), nbformat = None, rawContent = Some(raw))
+  val notebook = {
+    val nb = Notebook(metadata = Some(metadata), nbformat = None, rawContent = Some(raw))
+    val normalizedNb = Notebook.write(nb).flatMap(Notebook.read(_))
+    Await.result(normalizedNb, DefaultWaitSeconds)
+  }
 
   override def beforeAll: Unit = {
     tempPath = Files.createTempDirectory("file-system-notebook-provider")
@@ -128,14 +132,80 @@ class FileSystemNotebookProviderTests extends WordSpec with Matchers with Before
       } yield loaded
 
       whenReady( loadedNb ) { nb =>
-        nb.normalizedName should be (notebook.normalizedName)
-        nb.metadata should be (notebook.metadata)
-        nb.cells should be (notebook.cells)
-        nb.name should be (notebook.name)
-        nb.autosaved should be (notebook.autosaved)
-        nb.nbformat should be (notebook.nbformat)
-        nb.worksheets should be (notebook.worksheets)
-        // avoid comparing the raw content b/c it differs in indentation after JSON pretty print
+        nb should be (notebook)
+      }
+    }
+
+    "move a notebook file to another directory" in {
+      val nbName = "testMove.snb"
+      val originalPath = notebookPath.resolve(nbName)
+      val targetDir = notebookPath.resolve(s"dest")
+      Files.createDirectories(targetDir)
+      val targetNbPath = targetDir.resolve(nbName)
+
+      val moved = for {
+        _ <- provider.save(originalPath, notebook)
+        path <- provider.move(originalPath, targetNbPath)
+        nb <- provider.get(path)
+      } yield (nb, path)
+
+      whenReady(moved) { case (nb, path) =>
+        path should be (targetNbPath)
+        originalPath.toFile.exists() should be(false)
+        path.toFile.exists() should be(true)
+        nb should be (notebook)
+      }
+    }
+
+    "rename a notebook file" in {
+      val originalPath = notebookPath.resolve("testRename.snb")
+      val newName = "renamed.snb"
+      val destPath = notebookPath.resolve(newName)
+
+      val renamedNotebook = for {
+        _ <- provider.save(originalPath, notebook)
+        newPath <- provider.move(originalPath, destPath)
+        renamedNb <- provider.get(newPath)
+      } yield renamedNb
+
+      whenReady (renamedNotebook) {nb =>
+        originalPath.toFile.exists() should be (false)
+        destPath.toFile.exists() should be (true)
+        nb.name should be (newName)
+        nb.metadata.get.name should be (newName)
+      }
+    }
+
+    "preserve the id of a renamed notebook" in {
+      val nbPath = notebookPath.resolve("testinternal-rename.snb")
+      val originalId = notebook.metadata.get.id
+      val res = for {
+        nb <- provider.save(nbPath, notebook)
+        _ <- provider.renameInternal(nbPath, "testinternal-renamed")
+        renamed <- provider.get(nbPath)
+      } yield renamed
+
+      whenReady(res) { renamedNb =>
+        renamedNb.metadata.get.id should be(originalId)
+      }
+    }
+
+    "fail to move an unexisting notebook" in {
+      whenReady( provider.move(Paths.get("/path/to/nowhere"), notebookPath).failed ) { n =>
+        n shouldBe a [java.lang.IllegalArgumentException]
+      }
+    }
+
+    "fail to move a notebook to a non-existing directory" in {
+      val nbPath = notebookPath.resolve("testMoveNonExist.snb")
+      val nonExistingPath = notebookPath.resolve("nowhere/testMoveNonExist.snb")
+      val test = for {
+        nb <- provider.save(nbPath, notebook)
+        moved <- provider.move(nbPath, nonExistingPath)
+      }  yield (moved)
+
+      whenReady( test.failed ) { failure =>
+        failure shouldBe a[java.lang.IllegalArgumentException]
       }
     }
 
